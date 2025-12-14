@@ -1,0 +1,24 @@
+{
+    "games": [
+        {
+            "mode": "classic",
+            "score": 240,
+            "duration": 0,
+            "hit_rate": 0.8888888888888888,
+            "bricks_hit": 24,
+            "lives_remaining": 1,
+            "timestamp": "2025-12-14 23:42:46",
+            "won": false
+        },
+        {
+            "mode": "classic",
+            "score": 290,
+            "duration": 49.06895661354065,
+            "hit_rate": 0.8787878787878788,
+            "bricks_hit": 29,
+            "lives_remaining": 0,
+            "timestamp": "2025-12-14 23:48:08",
+            "won": false
+        }
+    ]
+}
