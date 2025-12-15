@@ -68,6 +68,15 @@ class Paddle_xzh:
         elif self.width > PADDLE_WIDTH_MAX_XZH:
             self.width = PADDLE_WIDTH_MAX_XZH
 
+    def adjust_speed_xzh(self, delta):
+        """
+        调整挡板速度
+        :param delta: 速度变化量
+        """
+        self.speed += delta
+        if self.speed > PADDLE_SPEED_MAX_XZH:
+            self.speed = PADDLE_SPEED_MAX_XZH
+
 
 class Ball_xzh:
     """球类"""
@@ -279,6 +288,10 @@ class Game_xzh:
             self.lives = INITIAL_LIVES_XZH if mode == MODE_CLASSIC_XZH else CHALLENGE_LIVES_XZH
             self.bricks_hit = 0
             self.bricks_missed = 0
+            self.total_bricks_hit = 0  # 新增：累计击中砖块数（不重置）
+            self.total_bricks_missed = 0  # 新增：累计未击中数（不重置）
+            self.last_check_hit_count = 0  # 新增：上次检查时的击中数
+            self.level = 1  # 新增：关卡数（用于挑战模式）
             self.start_time = None
             self.end_time = None
 
@@ -317,6 +330,23 @@ class Game_xzh:
                 brick = Brick_xzh(brick_x, brick_y, BRICK_WIDTH_XZH,
                                 BRICK_HEIGHT_XZH, color, POINTS_PER_BRICK_XZH)
                 self.bricks.append(brick)
+
+    def regenerate_bricks_xzh(self):
+        """重新生成砖块（用于挑战模式的无尽模式）"""
+        self.bricks = []
+        rows = BRICK_ROWS_XZH if self.mode == MODE_CLASSIC_XZH else CHALLENGE_BRICK_ROWS_XZH
+        for row in range(rows):
+            for col in range(BRICK_COLS_XZH):
+                brick_x = BRICK_OFFSET_LEFT_XZH + col * (BRICK_WIDTH_XZH + BRICK_PADDING_XZH)
+                brick_y = BRICK_OFFSET_TOP_XZH + row * (BRICK_HEIGHT_XZH + BRICK_PADDING_XZH)
+                color = BRICK_COLORS_XZH[row % len(BRICK_COLORS_XZH)]
+                brick = Brick_xzh(brick_x, brick_y, BRICK_WIDTH_XZH,
+                                BRICK_HEIGHT_XZH, color, POINTS_PER_BRICK_XZH)
+                self.bricks.append(brick)
+
+        # 关卡提升
+        self.level += 1
+        print(f"挑战模式 - 进入第 {self.level} 关!")
 
     def handle_events_xzh(self):
         """处理游戏事件"""
@@ -357,6 +387,7 @@ class Game_xzh:
         # 球与挡板碰撞
         if self.ball.bounce_paddle_xzh(self.paddle):
             self.bricks_missed += 1  # 记录未击中砖块的次数
+            self.total_bricks_missed += 1  # 累计未击中数
 
         # 球与砖块碰撞
         self.check_brick_collision_xzh()
@@ -370,10 +401,19 @@ class Game_xzh:
             else:
                 self.ball.reset_xzh(self.paddle)
 
-        # 检查是否获胜
+        # 检查是否获胜或重新生成砖块
         if all(not brick.visible for brick in self.bricks):
-            self.game_won = True
-            self.end_time = time.time()
+            if self.mode == MODE_CHALLENGE_XZH:
+                # 挑战模式：重新生成砖块，继续游戏（无尽模式）
+                self.regenerate_bricks_xzh()
+                # 球回到挡板上方，但不重置为未发射状态
+                if self.ball.active:
+                    self.ball.reset_xzh(self.paddle)
+                    self.ball.launch_xzh()  # 自动发射球
+            else:
+                # 经典模式：游戏胜利
+                self.game_won = True
+                self.end_time = time.time()
 
         # 智能难度调整
         self.adjust_difficulty_xzh()
@@ -394,6 +434,7 @@ class Game_xzh:
                     brick.visible = False
                     self.score += brick.points
                     self.bricks_hit += 1
+                    self.total_bricks_hit += 1  # 累计击中数
 
                     # 计算碰撞方向并反弹
                     self.calculate_bounce_xzh(brick_rect)
@@ -419,26 +460,29 @@ class Game_xzh:
             self.ball.dy = -self.ball.dy
 
     def adjust_difficulty_xzh(self):
-        """智能难度调整系统"""
-        # 每击中一定数量的砖块检查一次
-        if self.bricks_hit > 0 and self.bricks_hit % DIFFICULTY_CHECK_INTERVAL_XZH == 0:
-            # 计算命中率
-            total_attempts = self.bricks_hit + self.bricks_missed
-            if total_attempts > 0:
-                hit_rate = self.bricks_hit / total_attempts
+        """智能难度调整系统 - 渐进式难度提升"""
+        # 检查是否达到检查间隔
+        if self.total_bricks_hit - self.last_check_hit_count >= DIFFICULTY_CHECK_INTERVAL_XZH:
+            # 计算当前阶段的命中率（使用短期统计）
+            if self.bricks_hit > 0 or self.bricks_missed > 0:
+                total_attempts = self.bricks_hit + self.bricks_missed
+                hit_rate = self.bricks_hit / total_attempts if total_attempts > 0 else 0
 
-                # 根据命中率调整难度
+                # 如果命中率高于阈值，增加难度
                 if hit_rate > HIT_RATE_THRESHOLD_HIGH_XZH:
-                    # 命中率高，增加难度
-                    self.ball.adjust_speed_xzh(SPEED_ADJUSTMENT_XZH)
-                    self.paddle.adjust_width_xzh(-PADDLE_ADJUSTMENT_XZH)
-                elif hit_rate < HIT_RATE_THRESHOLD_LOW_XZH:
-                    # 命中率低，降低难度
-                    self.ball.adjust_speed_xzh(-SPEED_ADJUSTMENT_XZH)
-                    self.paddle.adjust_width_xzh(PADDLE_ADJUSTMENT_XZH)
+                    # 缩短挡板宽度
+                    old_width = self.paddle.width
+                    self.paddle.adjust_width_xzh(-PADDLE_WIDTH_ADJUSTMENT_XZH)
 
-                # 重置计数器
-                self.bricks_missed = 0
+                    # 只有当挡板实际缩短时，才增加移动速度（防止达到最小宽度后速度持续增加）
+                    if self.paddle.width < old_width:
+                        self.paddle.adjust_speed_xzh(PADDLE_SPEED_ADJUSTMENT_XZH)
+                        print(f"难度提升! 挡板宽度: {self.paddle.width:.0f}, 移动速度: {self.paddle.speed:.1f}")
+
+            # 更新检查点和重置短期统计
+            self.last_check_hit_count = self.total_bricks_hit
+            self.bricks_hit = 0
+            self.bricks_missed = 0
 
     def draw_xzh(self):
         """绘制游戏画面"""
@@ -474,17 +518,20 @@ class Game_xzh:
         lives_text = self.font_small.render(f"生命: {self.lives}", True, COLOR_WHITE_XZH)
         self.screen.blit(lives_text, (10, 35))
 
-        # 绘制模式
-        mode_text = "经典模式" if self.mode == MODE_CLASSIC_XZH else "挑战模式"
+        # 绘制模式和关卡（挑战模式显示关卡）
+        if self.mode == MODE_CHALLENGE_XZH:
+            mode_text = f"挑战模式 - 第{self.level}关"
+        else:
+            mode_text = "经典模式"
         mode_surface = self.font_small.render(mode_text, True, COLOR_YELLOW_XZH)
-        self.screen.blit(mode_surface, (SCREEN_WIDTH - 180, 10))
+        self.screen.blit(mode_surface, (SCREEN_WIDTH - 200, 10))
 
         # 绘制命中率
-        if self.bricks_hit > 0:
-            total = self.bricks_hit + self.bricks_missed
-            hit_rate = (self.bricks_hit / total) * 100 if total > 0 else 0
+        if self.total_bricks_hit > 0:
+            total = self.total_bricks_hit + self.total_bricks_missed
+            hit_rate = (self.total_bricks_hit / total) * 100 if total > 0 else 0
             hit_text = self.font_small.render(f"命中率: {hit_rate:.1f}%", True, COLOR_GREEN_XZH)
-            self.screen.blit(hit_text, (SCREEN_WIDTH - 180, 35))
+            self.screen.blit(hit_text, (SCREEN_WIDTH - 200, 35))
 
     def draw_start_message_xzh(self):
         """绘制开始提示信息"""
@@ -502,14 +549,29 @@ class Game_xzh:
         """绘制游戏结束信息"""
         game_over_text = self.font_large.render("游戏结束", True, COLOR_RED_XZH)
         score_text = self.font_medium.render(f"最终分数: {self.score}", True, COLOR_WHITE_XZH)
-        hint_text = self.font_small.render("按ESC键退出", True, COLOR_GRAY_XZH)
 
-        self.screen.blit(game_over_text,
-                        (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 50))
-        self.screen.blit(score_text,
-                        (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 + 10))
-        self.screen.blit(hint_text,
-                        (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 60))
+        # 挑战模式显示关卡信息
+        if self.mode == MODE_CHALLENGE_XZH:
+            level_text = self.font_medium.render(f"到达关卡: 第{self.level}关", True, COLOR_YELLOW_XZH)
+            hint_text = self.font_small.render("按ESC键退出", True, COLOR_GRAY_XZH)
+
+            self.screen.blit(game_over_text,
+                            (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 80))
+            self.screen.blit(score_text,
+                            (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 - 20))
+            self.screen.blit(level_text,
+                            (SCREEN_WIDTH/2 - level_text.get_width()/2, SCREEN_HEIGHT/2 + 20))
+            self.screen.blit(hint_text,
+                            (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 70))
+        else:
+            hint_text = self.font_small.render("按ESC键退出", True, COLOR_GRAY_XZH)
+
+            self.screen.blit(game_over_text,
+                            (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 50))
+            self.screen.blit(score_text,
+                            (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 + 10))
+            self.screen.blit(hint_text,
+                            (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 60))
 
     def draw_win_message_xzh(self):
         """绘制胜利信息"""
@@ -533,15 +595,16 @@ class Game_xzh:
         if self.start_time and self.end_time:
             duration = self.end_time - self.start_time
 
-        total_attempts = self.bricks_hit + self.bricks_missed
-        hit_rate = (self.bricks_hit / total_attempts) if total_attempts > 0 else 0
+        total_attempts = self.total_bricks_hit + self.total_bricks_missed
+        hit_rate = (self.total_bricks_hit / total_attempts) if total_attempts > 0 else 0
 
         return {
             "mode": self.mode,
             "score": self.score,
+            "level": self.level,  # 新增：关卡数
             "duration": duration,
             "hit_rate": hit_rate,
-            "bricks_hit": self.bricks_hit,
+            "bricks_hit": self.total_bricks_hit,
             "lives_remaining": self.lives,
             "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "won": self.game_won

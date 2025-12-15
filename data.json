@@ -19,6 +19,118 @@
             "lives_remaining": 0,
             "timestamp": "2025-12-14 23:48:08",
             "won": false
+        },
+        {
+            "mode": "challenge",
+            "score": 150,
+            "duration": 17.13966178894043,
+            "hit_rate": 1.0,
+            "bricks_hit": 15,
+            "lives_remaining": 0,
+            "timestamp": "2025-12-15 15:14:48",
+            "won": false
+        },
+        {
+            "mode": "classic",
+            "score": 280,
+            "duration": 0,
+            "hit_rate": 1.0,
+            "bricks_hit": 28,
+            "lives_remaining": 1,
+            "timestamp": "2025-12-15 15:15:25",
+            "won": false
+        },
+        {
+            "mode": "classic",
+            "score": 90,
+            "duration": 12.479985475540161,
+            "hit_rate": 1.0,
+            "bricks_hit": 9,
+            "lives_remaining": 0,
+            "timestamp": "2025-12-15 15:17:51",
+            "won": false
+        },
+        {
+            "mode": "classic",
+            "score": 170,
+            "duration": 31.005910396575928,
+            "hit_rate": 0.9444444444444444,
+            "bricks_hit": 17,
+            "lives_remaining": 0,
+            "timestamp": "2025-12-15 15:19:09",
+            "won": false
+        },
+        {
+            "mode": "challenge",
+            "score": 320,
+            "duration": 37.98950982093811,
+            "hit_rate": 0.9696969696969697,
+            "bricks_hit": 32,
+            "lives_remaining": 0,
+            "timestamp": "2025-12-15 15:22:08",
+            "won": false
+        },
+        {
+            "mode": "challenge",
+            "score": 30,
+            "duration": 0,
+            "hit_rate": 1.0,
+            "bricks_hit": 3,
+            "lives_remaining": 4,
+            "timestamp": "2025-12-15 15:22:26",
+            "won": false
+        },
+        {
+            "mode": "classic",
+            "score": 500,
+            "duration": 141.74707221984863,
+            "hit_rate": 0.5434782608695652,
+            "bricks_hit": 50,
+            "lives_remaining": 5,
+            "timestamp": "2025-12-15 15:40:46",
+            "won": true
+        },
+        {
+            "mode": "classic",
+            "score": 340,
+            "duration": 0,
+            "hit_rate": 0.6296296296296297,
+            "bricks_hit": 34,
+            "lives_remaining": 5,
+            "timestamp": "2025-12-15 15:42:30",
+            "won": false
+        },
+        {
+            "mode": "challenge",
+            "score": 800,
+            "duration": 139.4537069797516,
+            "hit_rate": 0.6106870229007634,
+            "bricks_hit": 80,
+            "lives_remaining": 2,
+            "timestamp": "2025-12-15 15:44:55",
+            "won": true
+        },
+        {
+            "mode": "challenge",
+            "score": 1190,
+            "level": 2,
+            "duration": 0,
+            "hit_rate": 0.6296296296296297,
+            "bricks_hit": 119,
+            "lives_remaining": 4,
+            "timestamp": "2025-12-15 15:51:31",
+            "won": false
+        },
+        {
+            "mode": "classic",
+            "score": 120,
+            "level": 1,
+            "duration": 0,
+            "hit_rate": 0.6666666666666666,
+            "bricks_hit": 12,
+            "lives_remaining": 5,
+            "timestamp": "2025-12-15 15:52:25",
+            "won": false
         }
     ]
 }
