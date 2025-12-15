@@ -131,6 +131,17 @@
             "lives_remaining": 5,
             "timestamp": "2025-12-15 15:52:25",
             "won": false
+        },
+        {
+            "mode": "challenge",
+            "score": 360,
+            "level": 1,
+            "duration": 0,
+            "hit_rate": 0.5901639344262295,
+            "bricks_hit": 36,
+            "lives_remaining": 5,
+            "timestamp": "2025-12-15 16:26:05",
+            "won": false
         }
     ]
 }

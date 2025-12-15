@@ -13,6 +13,39 @@ from datetime import datetime
 from config import *
 
 
+class Particle_xzh:
+    """粒子效果类 - 用于砖块破碎特效"""
+
+    def __init__(self, x, y, color):
+        self.x = x
+        self.y = y
+        self.vx = random.uniform(-3, 3)
+        self.vy = random.uniform(-5, -1)
+        self.color = color
+        self.life = 30  # 生命周期
+        self.size = random.randint(2, 5)
+
+    def update(self):
+        self.x += self.vx
+        self.y += self.vy
+        self.vy += 0.3  # 重力效果
+        self.life -= 1
+        self.size = max(1, self.size - 0.1)
+
+    def draw(self, screen):
+        alpha = int(255 * (self.life / 30))
+        color = (*self.color, alpha) if len(self.color) == 3 else self.color
+        try:
+            s = pygame.Surface((self.size * 2, self.size * 2), pygame.SRCALPHA)
+            pygame.draw.circle(s, color, (self.size, self.size), int(self.size))
+            screen.blit(s, (int(self.x - self.size), int(self.y - self.size)))
+        except:
+            pygame.draw.circle(screen, self.color[:3], (int(self.x), int(self.y)), int(self.size))
+
+    def is_dead(self):
+        return self.life <= 0
+
+
 class Paddle_xzh:
     """挡板类"""
 
@@ -44,11 +77,29 @@ class Paddle_xzh:
 
     def draw_xzh(self, screen):
         """
-        绘制挡板
+        绘制挡板 - 带渐变和发光效果
         :param screen: Pygame屏幕对象
         """
-        pygame.draw.rect(screen, self.color,
-                        (self.x, self.y, self.width, self.height))
+        # 绘制发光效果（外围）
+        glow_surf = pygame.Surface((self.width + 10, self.height + 10), pygame.SRCALPHA)
+        pygame.draw.rect(glow_surf, (*COLOR_CYAN_XZH, 30), (0, 0, self.width + 10, self.height + 10), border_radius=8)
+        screen.blit(glow_surf, (self.x - 5, self.y - 5))
+
+        # 绘制主体渐变效果
+        for i in range(self.height):
+            ratio = i / self.height
+            r = int(COLOR_BLUE_XZH[0] + (100 - COLOR_BLUE_XZH[0]) * ratio)
+            g = int(COLOR_BLUE_XZH[1] + (150 - COLOR_BLUE_XZH[1]) * ratio)
+            b = int(COLOR_BLUE_XZH[2] + (255 - COLOR_BLUE_XZH[2]) * ratio)
+            pygame.draw.rect(screen, (r, g, b), (self.x, self.y + i, self.width, 1))
+
+        # 绘制高光
+        highlight_surf = pygame.Surface((self.width, self.height // 3), pygame.SRCALPHA)
+        pygame.draw.rect(highlight_surf, (255, 255, 255, 80), (0, 0, self.width, self.height // 3), border_radius=5)
+        screen.blit(highlight_surf, (self.x, self.y + 2))
+
+        # 绘制边框
+        pygame.draw.rect(screen, (100, 200, 255), (self.x, self.y, self.width, self.height), 2, border_radius=5)
 
     def get_rect_xzh(self):
         """
@@ -177,11 +228,29 @@ class Ball_xzh:
 
     def draw_xzh(self, screen):
         """
-        绘制球
+        绘制球 - 带发光和渐变效果
         :param screen: Pygame屏幕对象
         """
-        pygame.draw.circle(screen, self.color,
-                          (int(self.x), int(self.y)), self.radius)
+        # 绘制发光效果（外围光晕）
+        for i in range(3):
+            glow_radius = self.radius + 6 - i * 2
+            alpha = 40 - i * 10
+            glow_surf = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(glow_surf, (*COLOR_CYAN_XZH, alpha),
+                             (glow_radius, glow_radius), glow_radius)
+            screen.blit(glow_surf, (int(self.x - glow_radius), int(self.y - glow_radius)))
+
+        # 绘制主球体（渐变效果）
+        pygame.draw.circle(screen, (200, 200, 255), (int(self.x), int(self.y)), self.radius)
+
+        # 绘制高光
+        highlight_offset = self.radius // 3
+        pygame.draw.circle(screen, (255, 255, 255),
+                         (int(self.x - highlight_offset), int(self.y - highlight_offset)),
+                         self.radius // 3)
+
+        # 绘制边框
+        pygame.draw.circle(screen, (150, 200, 255), (int(self.x), int(self.y)), self.radius, 2)
 
     def adjust_speed_xzh(self, delta):
         """
@@ -227,15 +296,34 @@ class Brick_xzh:
 
     def draw_xzh(self, screen):
         """
-        绘制砖块
+        绘制砖块 - 带3D立体和光泽效果
         :param screen: Pygame屏幕对象
         """
         if self.visible:
-            pygame.draw.rect(screen, self.color,
-                           (self.x, self.y, self.width, self.height))
+            # 绘制阴影
+            shadow_offset = 3
+            shadow_surf = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            pygame.draw.rect(shadow_surf, (0, 0, 0, 50), (0, 0, self.width, self.height), border_radius=5)
+            screen.blit(shadow_surf, (self.x + shadow_offset, self.y + shadow_offset))
+
+            # 绘制渐变主体
+            for i in range(self.height):
+                ratio = i / self.height
+                # 从亮到暗的渐变
+                r = int(self.color[0] * (1 - ratio * 0.3))
+                g = int(self.color[1] * (1 - ratio * 0.3))
+                b = int(self.color[2] * (1 - ratio * 0.3))
+                pygame.draw.rect(screen, (r, g, b), (self.x, self.y + i, self.width, 1))
+
+            # 绘制高光（顶部）
+            highlight_surf = pygame.Surface((self.width - 10, 8), pygame.SRCALPHA)
+            pygame.draw.rect(highlight_surf, (255, 255, 255, 100), (0, 0, self.width - 10, 8), border_radius=3)
+            screen.blit(highlight_surf, (self.x + 5, self.y + 3))
+
             # 绘制边框
-            pygame.draw.rect(screen, COLOR_BLACK_XZH,
-                           (self.x, self.y, self.width, self.height), 2)
+            darker_color = tuple(max(0, c - 50) for c in self.color)
+            pygame.draw.rect(screen, darker_color,
+                           (self.x, self.y, self.width, self.height), 2, border_radius=5)
 
     def get_rect_xzh(self):
         """
@@ -292,6 +380,7 @@ class Game_xzh:
             self.total_bricks_missed = 0  # 新增：累计未击中数（不重置）
             self.last_check_hit_count = 0  # 新增：上次检查时的击中数
             self.level = 1  # 新增：关卡数（用于挑战模式）
+            self.particles = []  # 粒子效果列表
             self.start_time = None
             self.end_time = None
 
@@ -418,6 +507,12 @@ class Game_xzh:
         # 智能难度调整
         self.adjust_difficulty_xzh()
 
+        # 更新粒子效果
+        for particle in self.particles[:]:
+            particle.update()
+            if particle.is_dead():
+                self.particles.remove(particle)
+
     def check_brick_collision_xzh(self):
         """检查球与砖块的碰撞"""
         if not self.ball.active:
@@ -435,6 +530,13 @@ class Game_xzh:
                     self.score += brick.points
                     self.bricks_hit += 1
                     self.total_bricks_hit += 1  # 累计击中数
+
+                    # 生成粒子效果
+                    brick_center_x = brick.x + brick.width / 2
+                    brick_center_y = brick.y + brick.height / 2
+                    for _ in range(15):  # 生成15个粒子
+                        particle = Particle_xzh(brick_center_x, brick_center_y, brick.color)
+                        self.particles.append(particle)
 
                     # 计算碰撞方向并反弹
                     self.calculate_bounce_xzh(brick_rect)
@@ -486,14 +588,18 @@ class Game_xzh:
 
     def draw_xzh(self):
         """绘制游戏画面"""
-        # 清屏
-        self.screen.fill(COLOR_BLACK_XZH)
+        # 绘制渐变背景
+        self.draw_background_xzh()
 
         # 绘制游戏对象
         self.paddle.draw_xzh(self.screen)
         self.ball.draw_xzh(self.screen)
         for brick in self.bricks:
             brick.draw_xzh(self.screen)
+
+        # 绘制粒子效果
+        for particle in self.particles:
+            particle.draw(self.screen)
 
         # 绘制UI
         self.draw_ui_xzh()
@@ -508,15 +614,38 @@ class Game_xzh:
 
         pygame.display.flip()
 
+    def draw_background_xzh(self):
+        """绘制渐变背景"""
+        for i in range(SCREEN_HEIGHT):
+            ratio = i / SCREEN_HEIGHT
+            # 从深蓝到黑的渐变
+            r = int(10 * (1 - ratio))
+            g = int(20 * (1 - ratio))
+            b = int(40 * (1 - ratio))
+            pygame.draw.line(self.screen, (r, g, b), (0, i), (SCREEN_WIDTH, i))
+
     def draw_ui_xzh(self):
-        """绘制游戏UI"""
+        """绘制游戏UI - 带半透明面板"""
+        # 绘制左侧信息面板
+        left_panel = pygame.Surface((150, 70), pygame.SRCALPHA)
+        pygame.draw.rect(left_panel, (20, 40, 80, 180), (0, 0, 150, 70), border_radius=10)
+        pygame.draw.rect(left_panel, (100, 150, 255, 100), (0, 0, 150, 70), 2, border_radius=10)
+        self.screen.blit(left_panel, (5, 5))
+
         # 绘制分数
         score_text = self.font_small.render(f"分数: {self.score}", True, COLOR_WHITE_XZH)
-        self.screen.blit(score_text, (10, 10))
+        self.screen.blit(score_text, (15, 15))
 
         # 绘制生命值
         lives_text = self.font_small.render(f"生命: {self.lives}", True, COLOR_WHITE_XZH)
-        self.screen.blit(lives_text, (10, 35))
+        self.screen.blit(lives_text, (15, 40))
+
+        # 绘制右侧信息面板
+        right_panel_width = 220
+        right_panel = pygame.Surface((right_panel_width, 70), pygame.SRCALPHA)
+        pygame.draw.rect(right_panel, (20, 40, 80, 180), (0, 0, right_panel_width, 70), border_radius=10)
+        pygame.draw.rect(right_panel, (100, 150, 255, 100), (0, 0, right_panel_width, 70), 2, border_radius=10)
+        self.screen.blit(right_panel, (SCREEN_WIDTH - right_panel_width - 5, 5))
 
         # 绘制模式和关卡（挑战模式显示关卡）
         if self.mode == MODE_CHALLENGE_XZH:
@@ -524,67 +653,90 @@ class Game_xzh:
         else:
             mode_text = "经典模式"
         mode_surface = self.font_small.render(mode_text, True, COLOR_YELLOW_XZH)
-        self.screen.blit(mode_surface, (SCREEN_WIDTH - 200, 10))
+        self.screen.blit(mode_surface, (SCREEN_WIDTH - right_panel_width + 5, 15))
 
         # 绘制命中率
         if self.total_bricks_hit > 0:
             total = self.total_bricks_hit + self.total_bricks_missed
             hit_rate = (self.total_bricks_hit / total) * 100 if total > 0 else 0
             hit_text = self.font_small.render(f"命中率: {hit_rate:.1f}%", True, COLOR_GREEN_XZH)
-            self.screen.blit(hit_text, (SCREEN_WIDTH - 200, 35))
+            self.screen.blit(hit_text, (SCREEN_WIDTH - right_panel_width + 5, 40))
 
     def draw_start_message_xzh(self):
-        """绘制开始提示信息"""
-        title = self.font_large.render("打砖块游戏", True, COLOR_CYAN_XZH)
-        hint = self.font_medium.render("按空格键开始游戏", True, COLOR_WHITE_XZH)
-        control1 = self.font_small.render("使用左右方向键或A/D键移动挡板", True, COLOR_GRAY_XZH)
-        control2 = self.font_small.render("按ESC键退出游戏", True, COLOR_GRAY_XZH)
+        """绘制开始提示信息 - 带半透明背景"""
+        # 绘制半透明背景板
+        overlay = pygame.Surface((600, 350), pygame.SRCALPHA)
+        pygame.draw.rect(overlay, (10, 20, 40, 220), (0, 0, 600, 350), border_radius=20)
+        pygame.draw.rect(overlay, (100, 200, 255, 150), (0, 0, 600, 350), 3, border_radius=20)
+        self.screen.blit(overlay, (SCREEN_WIDTH/2 - 300, SCREEN_HEIGHT/2 - 175))
 
+        # 绘制文字（带阴影效果）
+        title = self.font_large.render("打砖块游戏", True, COLOR_CYAN_XZH)
+        title_shadow = self.font_large.render("打砖块游戏", True, (0, 0, 0))
+        hint = self.font_medium.render("按空格键开始游戏", True, COLOR_WHITE_XZH)
+        control1 = self.font_small.render("使用左右方向键或A/D键移动挡板", True, (200, 200, 200))
+        control2 = self.font_small.render("按ESC键退出游戏", True, (200, 200, 200))
+
+        # 绘制阴影
+        self.screen.blit(title_shadow, (SCREEN_WIDTH/2 - title.get_width()/2 + 2, SCREEN_HEIGHT/2 - 98))
+        # 绘制文字
         self.screen.blit(title, (SCREEN_WIDTH/2 - title.get_width()/2, SCREEN_HEIGHT/2 - 100))
         self.screen.blit(hint, (SCREEN_WIDTH/2 - hint.get_width()/2, SCREEN_HEIGHT/2))
         self.screen.blit(control1, (SCREEN_WIDTH/2 - control1.get_width()/2, SCREEN_HEIGHT/2 + 50))
         self.screen.blit(control2, (SCREEN_WIDTH/2 - control2.get_width()/2, SCREEN_HEIGHT/2 + 80))
 
     def draw_game_over_message_xzh(self):
-        """绘制游戏结束信息"""
+        """绘制游戏结束信息 - 带半透明背景"""
+        # 绘制半透明背景板
+        panel_height = 300 if self.mode == MODE_CHALLENGE_XZH else 250
+        overlay = pygame.Surface((500, panel_height), pygame.SRCALPHA)
+        pygame.draw.rect(overlay, (40, 10, 10, 220), (0, 0, 500, panel_height), border_radius=20)
+        pygame.draw.rect(overlay, (255, 100, 100, 150), (0, 0, 500, panel_height), 3, border_radius=20)
+        self.screen.blit(overlay, (SCREEN_WIDTH/2 - 250, SCREEN_HEIGHT/2 - panel_height/2))
+
+        # 绘制文字
         game_over_text = self.font_large.render("游戏结束", True, COLOR_RED_XZH)
+        game_over_shadow = self.font_large.render("游戏结束", True, (0, 0, 0))
         score_text = self.font_medium.render(f"最终分数: {self.score}", True, COLOR_WHITE_XZH)
 
         # 挑战模式显示关卡信息
         if self.mode == MODE_CHALLENGE_XZH:
             level_text = self.font_medium.render(f"到达关卡: 第{self.level}关", True, COLOR_YELLOW_XZH)
-            hint_text = self.font_small.render("按ESC键退出", True, COLOR_GRAY_XZH)
+            hint_text = self.font_small.render("按ESC键退出", True, (200, 200, 200))
 
-            self.screen.blit(game_over_text,
-                            (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 80))
-            self.screen.blit(score_text,
-                            (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 - 20))
-            self.screen.blit(level_text,
-                            (SCREEN_WIDTH/2 - level_text.get_width()/2, SCREEN_HEIGHT/2 + 20))
-            self.screen.blit(hint_text,
-                            (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 70))
+            self.screen.blit(game_over_shadow, (SCREEN_WIDTH/2 - game_over_text.get_width()/2 + 2, SCREEN_HEIGHT/2 - 78))
+            self.screen.blit(game_over_text, (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 80))
+            self.screen.blit(score_text, (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 - 20))
+            self.screen.blit(level_text, (SCREEN_WIDTH/2 - level_text.get_width()/2, SCREEN_HEIGHT/2 + 20))
+            self.screen.blit(hint_text, (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 70))
         else:
-            hint_text = self.font_small.render("按ESC键退出", True, COLOR_GRAY_XZH)
+            hint_text = self.font_small.render("按ESC键退出", True, (200, 200, 200))
 
-            self.screen.blit(game_over_text,
-                            (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 50))
-            self.screen.blit(score_text,
-                            (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 + 10))
-            self.screen.blit(hint_text,
-                            (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 60))
+            self.screen.blit(game_over_shadow, (SCREEN_WIDTH/2 - game_over_text.get_width()/2 + 2, SCREEN_HEIGHT/2 - 48))
+            self.screen.blit(game_over_text, (SCREEN_WIDTH/2 - game_over_text.get_width()/2, SCREEN_HEIGHT/2 - 50))
+            self.screen.blit(score_text, (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 + 10))
+            self.screen.blit(hint_text, (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 60))
 
     def draw_win_message_xzh(self):
-        """绘制胜利信息"""
-        win_text = self.font_large.render("恭喜获胜!", True, COLOR_GREEN_XZH)
-        score_text = self.font_medium.render(f"最终分数: {self.score}", True, COLOR_WHITE_XZH)
-        hint_text = self.font_small.render("按ESC键退出", True, COLOR_GRAY_XZH)
+        """绘制胜利信息 - 带半透明背景"""
+        # 绘制半透明背景板
+        overlay = pygame.Surface((500, 250), pygame.SRCALPHA)
+        pygame.draw.rect(overlay, (10, 40, 10, 220), (0, 0, 500, 250), border_radius=20)
+        pygame.draw.rect(overlay, (100, 255, 100, 150), (0, 0, 500, 250), 3, border_radius=20)
+        self.screen.blit(overlay, (SCREEN_WIDTH/2 - 250, SCREEN_HEIGHT/2 - 125))
 
-        self.screen.blit(win_text,
-                        (SCREEN_WIDTH/2 - win_text.get_width()/2, SCREEN_HEIGHT/2 - 50))
-        self.screen.blit(score_text,
-                        (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 + 10))
-        self.screen.blit(hint_text,
-                        (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 60))
+        # 绘制文字（带阴影效果）
+        win_text = self.font_large.render("恭喜获胜!", True, COLOR_GREEN_XZH)
+        win_shadow = self.font_large.render("恭喜获胜!", True, (0, 0, 0))
+        score_text = self.font_medium.render(f"最终分数: {self.score}", True, COLOR_WHITE_XZH)
+        hint_text = self.font_small.render("按ESC键退出", True, (200, 200, 200))
+
+        # 绘制阴影
+        self.screen.blit(win_shadow, (SCREEN_WIDTH/2 - win_text.get_width()/2 + 2, SCREEN_HEIGHT/2 - 48))
+        # 绘制文字
+        self.screen.blit(win_text, (SCREEN_WIDTH/2 - win_text.get_width()/2, SCREEN_HEIGHT/2 - 50))
+        self.screen.blit(score_text, (SCREEN_WIDTH/2 - score_text.get_width()/2, SCREEN_HEIGHT/2 + 10))
+        self.screen.blit(hint_text, (SCREEN_WIDTH/2 - hint_text.get_width()/2, SCREEN_HEIGHT/2 + 60))
 
     def get_game_data_xzh(self):
         """
